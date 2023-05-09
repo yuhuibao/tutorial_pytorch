@@ -86,7 +86,11 @@ def dataprocess():
     cudaevents = []
     bothevents = []
     profilerstarttime = 0
-    for event in json_trace['traceEvents']:
+    def myFunc(e):
+        return e['ts']
+    traceevents = json_trace['traceEvents']
+    traceevents.sort(key=myFunc)
+    for event in traceevents:
         if (event.get('cat', '').lower() == 'cpu_op') or (event.get('cat', '').lower() == 'operator') and event.get(
                 'ph', '').lower() == 'x':
             dur = event['dur']
