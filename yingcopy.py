@@ -74,8 +74,8 @@ def dataprocess():
     #     'inputproducts,inputsize,convkernelsize,bias,kernelduration,kernelstarttime,kernelendtime,correlationid,blocksperSM,'
     #     'warpsperSM,stream,grid,block,kernelname')
     print(
-        'modelid,layerid,cpueventname,cudatime,cudatimenooverlap,inputdims,'
-        'inputproducts,inputsize,kernelduration,blocksperSM,'
+        'modelid,cpueventname,cudatime,cudatimenooverlap,inputdims,'
+        'inputsize,kernelduration,blocksperSM,'
         'warpsperSM,stream,grid,block,kernelname')
     fileid = 0
 
@@ -98,7 +98,7 @@ def dataprocess():
             aoperator.duration = dur
             aoperator.starttime = ts
             aoperator.endtime = te
-            aoperator.inputdims = event['args']['Input Dims']
+            aoperator.inputdims = event['args'].get('Input Dims','')
             # aoperator.inputdims = event['args']['Input dims']
             # aoperator.inputdims = str(event['args']['Input Dims']).replace(' ','').replace(',',';')
 
@@ -114,6 +114,8 @@ def dataprocess():
                     # print(aoperator.name)
                     # print(cpueventsitem.name)
                     popitem.append(aoperator)  # 检索出要删除的多余项
+                    if cpueventsitem.inputdims == '':
+                        cpueventsitem.inputdims = aoperator.inputdims
                 elif te >= cpueventsitem.endtime and ts < cpueventsitem.starttime:
                     popitem.append(cpueventsitem)
 
@@ -159,13 +161,16 @@ def dataprocess():
                     akernel.block = event['args']['block']
                     akernel.stream = event['args']['stream']
                     cpueventsitem.cudaevents.append(akernel)
-    layerid = 0
+    # layerid = 0
     for cpueventsitem in cpuevents:
         # print(cpueventsitem.name,',', cpueventsitem.duration,',',cpueventsitem.starttime-profilerstarttime,',',cpueventsitem.endtime-profilerstarttime,
         #       ',',str(cpueventsitem.correlationid).replace(',', ';'),',', cpueventsitem.inputdims,inputproducts)
-        layerid += 1
-        inputproducts = l_prod(cpueventsitem.inputdims[0])
-        inputsize = cpueventsitem.inputdims[0]
+        # layerid += 1
+        # inputproducts = l_prod(cpueventsitem.inputdims[0])
+        if cpueventsitem.inputdims != '':
+            inputsize = cpueventsitem.inputdims[0]
+        else:
+            inputsize = ''
         if cpueventsitem.name == 'aten::conv2d':
             bias = cpueventsitem.inputdims[2]
             kernelsize = cpueventsitem.inputdims[1][2:]  # Kw x Kh
@@ -201,9 +206,9 @@ def dataprocess():
                 #       item.warpsperSM, ',', item.stream,
                 #       ',', str(item.grid).replace(',', ';'), ',', str(item.block).replace(',', ';'), ',',
                 #       item.name.replace(',', ';'))
-            print(file, ',', layerid, ',', cpueventsitem.name, ',', cudatime, ',', cudatimenooverlap, ',',
+            print(file, ',', cpueventsitem.name, ',', cudatime, ',', cudatimenooverlap, ',',
                         str(cpueventsitem.inputdims).replace(' ', '').replace(',', ';')
-                        , ',', inputproducts, ',', str(inputsize).replace(',', ';'), ',',
+                        ,',', str(inputsize).replace(',', ';'), ',',
                         cudaeventsitem.duration, ',', cudaeventsitem.blocksperSM, ',',
                         cudaeventsitem.warpsperSM, ',', cudaeventsitem.stream, ',', str(cudaeventsitem.grid).replace(',', ';'), ',',
                         str(cudaeventsitem.block).replace(',', ';'), ',',
